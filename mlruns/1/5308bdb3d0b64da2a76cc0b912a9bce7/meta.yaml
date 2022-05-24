@@ -1,0 +1,15 @@
+artifact_uri: file:///E:/%E9%A1%B9%E7%9B%AE/streamlit/streamlit_pycaret-master/mlruns/1/5308bdb3d0b64da2a76cc0b912a9bce7/artifacts
+end_time: 1652250658493
+entry_point_name: ''
+experiment_id: '1'
+lifecycle_stage: active
+name: ''
+run_id: 5308bdb3d0b64da2a76cc0b912a9bce7
+run_uuid: 5308bdb3d0b64da2a76cc0b912a9bce7
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1652250658360
+status: 3
+tags: []
+user_id: PC

@@ -1,0 +1,24 @@
+artifact_path: model
+flavors:
+  python_function:
+    env: conda.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    python_version: 3.9.7
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 0.23.2
+mlflow_version: 1.25.1
+model_uuid: 852300449ac8400fac3c88a4878d119e
+run_id: bd09287eb94f432a8b5cc146fc48fb54
+saved_input_example_info:
+  artifact_path: input_example.json
+  pandas_orient: split
+  type: dataframe
+signature:
+  inputs: '[{"name": "\u8bbe\u59071\u9700\u91cf", "type": "double"}, {"name": "\u8bbe\u59072\u9700\u91cf",
+    "type": "double"}, {"name": "\u8bbe\u59073\u9700\u91cf", "type": "double"}]'
+  outputs: null
+utc_time_created: '2022-05-12 03:35:05.358809'

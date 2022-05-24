@@ -1,0 +1,29 @@
+artifact_path: model
+flavors:
+  python_function:
+    env: conda.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    python_version: 3.9.7
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 0.23.2
+mlflow_version: 1.25.1
+model_uuid: 369ece507873472bbe4e1fd791b54427
+run_id: a419c6ae04e7470f8d9b8e1a1da8e63f
+saved_input_example_info:
+  artifact_path: input_example.json
+  pandas_orient: split
+  type: dataframe
+signature:
+  inputs: '[{"name": "Number of times pregnant", "type": "long"}, {"name": "Plasma
+    glucose concentration a 2 hours in an oral glucose tolerance test", "type": "long"},
+    {"name": "Diastolic blood pressure (mm Hg)", "type": "long"}, {"name": "Triceps
+    skin fold thickness (mm)", "type": "long"}, {"name": "2-Hour serum insulin (mu
+    U/ml)", "type": "long"}, {"name": "Body mass index (weight in kg/(height in m)^2)",
+    "type": "double"}, {"name": "Diabetes pedigree function", "type": "double"}, {"name":
+    "Age (years)", "type": "long"}]'
+  outputs: null
+utc_time_created: '2022-05-12 12:07:44.868756'
