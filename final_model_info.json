@@ -1,8 +1,8 @@
 {
-    "\u603b\u964d\u9700\u91cfypre1": {
+    "总降需量ypre1": {
         "model": {
-            "domain": "./\u5de5\u5382\u80fd\u8017\u9884\u6d4b/\u5f00\u53d1\u73af\u5883/\u7535\u529b\u80fd\u8017\u9884\u6d4b",
-            "model_id": "3f20314f-4ad4-41d2-a55a-d10005133ed1",
+            "domain": "./原始数据/开发环境/预测3分钟",
+            "model_id": "bd4c0c41-3a1a-4dea-bd8a-6727d8a5d916",
             "model_type": {
                 "library": "sklearn",
                 "type": "LGBMRegressor"
@@ -19,10 +19,10 @@
                 "n_estimators": 100,
                 "n_jobs": -1,
                 "num_leaves": 31,
-                "random_state": 367,
+                "random_state": 6613,
                 "reg_alpha": 0.0,
                 "reg_lambda": 0.0,
-                "silent": "warn",
+                "silent": true,
                 "subsample": 1.0,
                 "subsample_for_bin": 200000,
                 "subsample_freq": 0
@@ -31,30 +31,35 @@
         },
         "storage": {
             "type": "file_system",
-            "path": "E:\\\u9879\u76ee\\streamlit\\streamlit_pycaret-master2\\model_dir\\operatorai-model-store\\\u5de5\u5382\u80fd\u8017\u9884\u6d4b\\\u5f00\u53d1\u73af\u5883\\\u7535\u529b\u80fd\u8017\u9884\u6d4b\\2022.05.23-15.12.10\\artifacts.tar.gz"
+            "path": "E:\\项目\\能耗预测助手\\streamlit_power_predict-master\\model_dir\\operatorai-model-store\\原始数据\\开发环境\\预测3分钟\\2022.05.27-14.18.03\\artifacts.tar.gz"
         },
         "code": {
-            "runtime": "python:3.6.13",
+            "runtime": "python:3.8.13",
             "user": "PC",
-            "created": "2022/05/23/15:12:10",
+            "created": "2022/05/27/14:18:03",
             "dependencies": {
                 "sklearn": "0.23.2",
                 "pip": "21.2.2",
-                "setuptools": "58.0.4",
+                "setuptools": "61.2.0",
                 "numpy": "1.19.5",
-                "scipy": "1.5.4",
-                "pandas": "1.1.5",
-                "Cython": "0.29.14",
+                "scipy": "1.5.3",
+                "pandas": "1.4.2",
                 "joblib": "1.0.1",
-                "threadpoolctl": "3.1.0"
+                "threadpoolctl": "2.2.0"
+            },
+            "git": {
+                "repository": "power_predict",
+                "sha": "18b77fdf6b6d794d5501e8d1237d2de5086f2722",
+                "local_changes": true,
+                "branch": "master"
             }
         },
         "modelstore": "0.0.74"
     },
-    "\u603b\u964d\u9700\u91cfypre2": {
+    "总降需量ypre2": {
         "model": {
-            "domain": "./\u5de5\u5382\u80fd\u8017\u9884\u6d4b/\u5f00\u53d1\u73af\u5883/\u7535\u529b\u80fd\u8017\u9884\u6d4b",
-            "model_id": "630261a7-01c8-496f-98ed-05413ca572c0",
+            "domain": "./原始数据/开发环境/预测3分钟",
+            "model_id": "655751ff-6b65-4e6d-873f-6b87005c77f3",
             "model_type": {
                 "library": "sklearn",
                 "type": "LGBMRegressor"
@@ -71,10 +76,10 @@
                 "n_estimators": 100,
                 "n_jobs": -1,
                 "num_leaves": 31,
-                "random_state": 3985,
+                "random_state": 7924,
                 "reg_alpha": 0.0,
                 "reg_lambda": 0.0,
-                "silent": "warn",
+                "silent": true,
                 "subsample": 1.0,
                 "subsample_for_bin": 200000,
                 "subsample_freq": 0
@@ -83,30 +88,35 @@
         },
         "storage": {
             "type": "file_system",
-            "path": "E:\\\u9879\u76ee\\streamlit\\streamlit_pycaret-master2\\model_dir\\operatorai-model-store\\\u5de5\u5382\u80fd\u8017\u9884\u6d4b\\\u5f00\u53d1\u73af\u5883\\\u7535\u529b\u80fd\u8017\u9884\u6d4b\\2022.05.23-15.12.35\\artifacts.tar.gz"
+            "path": "E:\\项目\\能耗预测助手\\streamlit_power_predict-master\\model_dir\\operatorai-model-store\\原始数据\\开发环境\\预测3分钟\\2022.05.27-14.18.30\\artifacts.tar.gz"
         },
         "code": {
-            "runtime": "python:3.6.13",
+            "runtime": "python:3.8.13",
             "user": "PC",
-            "created": "2022/05/23/15:12:35",
+            "created": "2022/05/27/14:18:30",
             "dependencies": {
                 "sklearn": "0.23.2",
                 "pip": "21.2.2",
-                "setuptools": "58.0.4",
+                "setuptools": "61.2.0",
                 "numpy": "1.19.5",
-                "scipy": "1.5.4",
-                "pandas": "1.1.5",
-                "Cython": "0.29.14",
+                "scipy": "1.5.3",
+                "pandas": "1.4.2",
                 "joblib": "1.0.1",
-                "threadpoolctl": "3.1.0"
+                "threadpoolctl": "2.2.0"
+            },
+            "git": {
+                "repository": "power_predict",
+                "sha": "18b77fdf6b6d794d5501e8d1237d2de5086f2722",
+                "local_changes": true,
+                "branch": "master"
             }
         },
         "modelstore": "0.0.74"
     },
-    "\u603b\u964d\u9700\u91cfypre3": {
+    "总降需量ypre3": {
         "model": {
-            "domain": "./\u5de5\u5382\u80fd\u8017\u9884\u6d4b/\u5f00\u53d1\u73af\u5883/\u7535\u529b\u80fd\u8017\u9884\u6d4b",
-            "model_id": "ff63822c-859b-465c-bd48-27c675086cc5",
+            "domain": "./原始数据/开发环境/预测3分钟",
+            "model_id": "ee0d9c4b-3f61-4d81-b471-e3288ad486a6",
             "model_type": {
                 "library": "sklearn",
                 "type": "LGBMRegressor"
@@ -123,10 +133,10 @@
                 "n_estimators": 100,
                 "n_jobs": -1,
                 "num_leaves": 31,
-                "random_state": 606,
+                "random_state": 7302,
                 "reg_alpha": 0.0,
                 "reg_lambda": 0.0,
-                "silent": "warn",
+                "silent": true,
                 "subsample": 1.0,
                 "subsample_for_bin": 200000,
                 "subsample_freq": 0
@@ -135,22 +145,27 @@
         },
         "storage": {
             "type": "file_system",
-            "path": "E:\\\u9879\u76ee\\streamlit\\streamlit_pycaret-master2\\model_dir\\operatorai-model-store\\\u5de5\u5382\u80fd\u8017\u9884\u6d4b\\\u5f00\u53d1\u73af\u5883\\\u7535\u529b\u80fd\u8017\u9884\u6d4b\\2022.05.23-15.13.01\\artifacts.tar.gz"
+            "path": "E:\\项目\\能耗预测助手\\streamlit_power_predict-master\\model_dir\\operatorai-model-store\\原始数据\\开发环境\\预测3分钟\\2022.05.27-14.18.57\\artifacts.tar.gz"
         },
         "code": {
-            "runtime": "python:3.6.13",
+            "runtime": "python:3.8.13",
             "user": "PC",
-            "created": "2022/05/23/15:13:01",
+            "created": "2022/05/27/14:18:56",
             "dependencies": {
                 "sklearn": "0.23.2",
                 "pip": "21.2.2",
-                "setuptools": "58.0.4",
+                "setuptools": "61.2.0",
                 "numpy": "1.19.5",
-                "scipy": "1.5.4",
-                "pandas": "1.1.5",
-                "Cython": "0.29.14",
+                "scipy": "1.5.3",
+                "pandas": "1.4.2",
                 "joblib": "1.0.1",
-                "threadpoolctl": "3.1.0"
+                "threadpoolctl": "2.2.0"
+            },
+            "git": {
+                "repository": "power_predict",
+                "sha": "18b77fdf6b6d794d5501e8d1237d2de5086f2722",
+                "local_changes": true,
+                "branch": "master"
             }
         },
         "modelstore": "0.0.74"

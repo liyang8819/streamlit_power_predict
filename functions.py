@@ -6,6 +6,7 @@ Created on Mon May 16 15:25:55 2022
 """
 
 import pandas as pd
+import json
 def create_traindata_with_ypre(dataframe,
                                  pre_n_minutes=6,
                                  y_name='220KV站矿钢线进线(272)P（有功功率）',
@@ -64,7 +65,76 @@ def create_diff_fea(train_set,
             fea_past=train_data.shift(i).rename(lambda x: x+'_past'+str(i),axis=1)
             train_set=pd.concat([train_set,fea_past],axis=1)            
     return train_set 
-                       
+        
+
+def time_set_box(dataframe,st):
+    import datetime
+    col1,col2,col3,col4,col5=st.columns(5)    
+    
+    with col1:
+        demo_datestart=st.date_input('开始日期', 
+                                     datetime.date(2021, 6, 6),
+                                     min_value=datetime.date(2021, 6, 6),
+                                     max_value=datetime.date(2021, 7, 1))                
+    
+    with col2:
+        demo_timestart=st.time_input('开始时间', datetime.time(12, 0, 0))                
+    with col3:    
+        demo_dateend=st.date_input('结束日期', 
+                                   datetime.date(2021, 6, 6),
+                                   min_value=datetime.date(2021, 6, 6),
+                                   max_value=datetime.date(2021, 7, 1))
+        
+    with col4:
+        demo_timeend=st.time_input('结束时间', datetime.time(12, 15, 0))             
+    demo_start=str(demo_datestart)+str(" ")+str(demo_timestart)
+    demo_end=str(demo_dateend)+str(" ")+str(demo_timeend)   
+    seldata=dataframe[demo_start:demo_end]                       
+    return seldata
+
+def get_timeseries_predict(uploaded_model,filename,env_button,model_store,datasource,pc_rg):
+    with open('model_info_'+env_button+uploaded_model+'.json','r') as f:
+        model_idname_info=json.load(f)
+        
+    with open(filename[0:-4]+uploaded_model+'model_config.json','r') as f:
+        model_config=json.load(f, encoding="utf8")
+    domain='./'+filename[0:-4]+'/'+env_button+'/'+uploaded_model
+
+    model_online={}
+    for target_name, model_id in model_idname_info.items():
+        model_online[target_name]=model_store.load( domain, 
+                                      model_id=model_id)
+
+    
+    dataframe=pd.read_csv(datasource,index_col=0).fillna(0)
+    shift_dataframe,target_name_list=create_traindata_with_ypre(dataframe,
+                                                 pre_n_minutes=model_config["pre_shift"],
+                                                 y_name=model_config["target_col"],
+                                                 dropna=1)
+
+    shift_dataframe_withfea=create_diff_fea(shift_dataframe,
+                                            target_name_list,
+                                            diff_periods=10,
+                                            use_past_fea=0)
+    
+    
+    pre_data_all={}
+    for target_name in target_name_list:                                                                       
+    
+        pre_data=pd.DataFrame()
+        pre_data=pc_rg.predict_model(model_online[target_name],data=shift_dataframe_withfea)[['Label']]
+       
+        pre_data.index=pd.to_datetime(pre_data.index)
+        pre_data.columns=[target_name]                            
+        pre_data_all[target_name]=pre_data.copy()
+    return pre_data_all,target_name_list,model_online,model_config,dataframe
+
+
+
+
+
+
+
 
                  # with col1:
      
@@ -151,3 +221,41 @@ def create_diff_fea(train_set,
                 #         ax.legend(['y_true','y_predict'])
                 #         # ax.title('kde')
                 #         st.pyplot(fig)
+                
+        # import streamlit.components.v1 as components
+        # # components.html("""我们要使用的HTML代码""", weight=500, height=300, scrolling=True)
+        # def draw_table(df, theme, table_height):
+        #    columns = df.columns
+        #    thead1="""<thead><th scope="col"></th>"""
+        #    thead_temp = []
+        #    for k in range(len(list(columns))):
+        #        thead_temp.append("""<th scope="col" class="text-white">"""+str(list(columns)[k])+"""</th>""")
+        #    header = thead1+"".join(thead_temp)+"""</tr></thead>"""
+        #    rows = []
+        #    rows_temp = []
+        #    for i in range(df.shape[0]):
+        #        rows.append("""<th scope="row">"""+str(i+1)+"""</th>""")
+        #        rows_temp.append(df.iloc[i].values.tolist())
+        #    td_temp = []
+        #    for j in range(len(rows_temp)):
+        #        for m in range(len(rows_temp[j])):
+        #            td_temp.append("""<td class="text-white">"""+str(rows_temp[j][m])+"""</td>""")
+        #    td_temp2 = []
+        #    for n in range(len(td_temp)):
+        #        td_temp2.append(td_temp[n:n+df.shape[1]])
+        #    td_temp3 = []
+        #    for x in range(len(td_temp2)):
+        #        if int(x % (df.shape[1])) == 0:
+        #            td_temp3.append(td_temp2[x])
+        #    td_temp4 = []
+        #    for xx in range(len(td_temp3)):
+        #        td_temp4.append("".join(td_temp3[xx]))
+        #    td_temp5 = []
+        #    for v in range(len(td_temp4)):
+        #        td_temp5.append("""<tr><th scope="row" class="text-white">"""+str(v+1)+"""</th>"""+str(td_temp4[v])+"""</tr>""")
+        #    table_html = """<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">"""+\
+        #    """<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>"""+\
+        #    """<table class="table text-center table-bordered """+str(theme)+'"'+">""" + \
+        #    header+"""<tbody>"""+"".join(td_temp5)+"""</tbody></table>"""
+        
+        #    return components.html(table_html,height=table_height, scrolling=True)                

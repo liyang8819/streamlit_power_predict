@@ -6,10 +6,14 @@ in another terminal run: mlflow ui
 import streamlit as st
 from modelstore import ModelStore
 from streamlit_option_menu import option_menu
+import extra_streamlit_components as stx
+from st_material_table import st_material_table
 import pandas as pd
 from pandas_profiling import ProfileReport
 from streamlit_pandas_profiling import st_profile_report
 import matplotlib.pyplot as plt
+# from bokeh.plotting import figure
+import streamlit_authenticator as stauth
 
 plt.style.use('dark_background')
 import shutil
@@ -29,10 +33,12 @@ import mlflow
 import webbrowser
 import logging
 import shutil
+from functions import get_timeseries_predict
+
 
 def save_model(st,final_model_info='final_model_info.json'):
 
-    with open(final_model_info,'rb') as f:
+    with open(final_model_info,'r') as f:
         final_model_info=json.load(f) 
 
     with st.expander('当前模型信息'):
@@ -67,7 +73,7 @@ def get_data(filename_path='./recent_file_name.txt'):
     with open(filename_path) as file_object:
         filename_newest = file_object.read()
         try:
-            data=pd.read_csv('./data/'+filename_newest,index_col=0).fillna(0)
+            data=pd.read_csv('./data/'+filename_newest,index_col=0,parse_dates=True).fillna(0)
         except:
             st.info(filename_newest+"不存在,请重新上传文件")
             return None,None
@@ -125,7 +131,7 @@ def data_process(st, **state):
                 rfn.write(uploaded_file.name)                                        
                 
         st.markdown("") 
-        new_filename_button=st.checkbox("更改文件名称")
+        new_filename_button=st.checkbox("更改文件名称(optional)")
         if new_filename_button:
             col1,col2=st.columns(2)            
             with col1:
@@ -149,12 +155,41 @@ def data_process(st, **state):
             st.success("保存成功")
         dataframe,filename = get_data() 
         st.caption('当前文件：          '+filename) 
-        st.table(dataframe.head(5))
         
-        # MultiPage.save({"dataframe":dataframe})    
-        # MultiPage.save({"filename":filename})  
+        dataframe_ori=dataframe.copy()
         
-                       
+
+        dataframe['datetime']=dataframe.index
+        dataframe['datetime'] = dataframe['datetime'].apply(lambda x:x.strftime('%Y-%m-%d %H:%M:%S'))
+        dataframe.index=range(len(dataframe))
+
+        dataframe=dataframe[['datetime']+dataframe.columns[0:-1].tolist()]
+        with st.expander('数据表内容'):
+            st_material_table(dataframe.head(100))
+
+        
+        draw_trend=st.checkbox('趋势图',value=True,key='draw_trend')
+        
+        
+        if draw_trend:
+            
+            from functions import time_set_box
+            seldata=time_set_box(dataframe_ori,st)
+            mul_sel=st.multiselect('选择列名',dataframe.columns[1:])
+            col1,col2=st.columns([1,5])
+            height=col1.number_input("设置趋势图高度",value=200)
+            if st.checkbox('趋势对比'):
+                
+                
+                origin_trend=st.line_chart(seldata[mul_sel[0]],width=1200,height=height)
+                for col in mul_sel[1:]:
+                    
+                    origin_trend.add_rows(seldata[col])
+            else:
+                for col in mul_sel:
+                    st.line_chart(seldata[col],width=1200,height=height)
+
+               
     if choose=="数据报告":
         filename=get_current_file_name()  
         if st.button('生成数据报告'):
@@ -184,7 +219,7 @@ def data_process(st, **state):
             filter_cols={}                           
             for col in dataframe.columns:
                 filter_cols[col]=st.checkbox(col,value=filter_cols_last[col],key=col)
-            # st.write(filter_cols)
+          
                 
         st.caption('已选数据：   ')
         i=0 
@@ -193,24 +228,21 @@ def data_process(st, **state):
             if selstatus:
                 i=i+1
                 selcols.append(col)
-                # st.caption(str(i)+","+col)
-        # st.markdown('<p class="font3">${selcols}</p>', unsafe_allow_html=True)
+
         st.markdown(selcols)
-        # st.json(filter_cols)
+
         if st.button('保存'):
             with open('filter_cols.json','w') as f:
-                json.dump(filter_cols,f)
+                json.dump(filter_cols,f,ensure_ascii=False)
                 st.success("保存成功")
 
         filter_dataframe=dataframe[[k for k,v in filter_cols.items() if v]]               
 
 def build_model(st,**state):
 
-    choose = option_menu(None, ["step1,配置环境","step2,训练模型","step3,我的模型"],
-                         default_index=0,
-                         menu_icon="cast",
-                         orientation="horizontal",
-                         styles=option_style)
+
+    choose = stx.stepper_bar(steps=["Step1:配置环境", "Step2:训练模型", "Step3:我的模型"], is_vertical=0, lock_sequence=False)
+
     
     filename=get_current_file_name()                 
     dataframe,filename=data_process_cache(filename) 
@@ -220,7 +252,7 @@ def build_model(st,**state):
     filter_cols=[col for col in filter_cols_last.keys() if filter_cols_last[col]]   
     filter_dataframe=dataframe[filter_cols].copy()
         
-    if choose=="step1,配置环境": 
+    if choose==0: 
         columns=filter_dataframe.columns.tolist() 
         if os.path.exists('model_config.json'):
             with open('model_config.json','r') as f:
@@ -228,7 +260,7 @@ def build_model(st,**state):
         else:
             model_config={"target_col":''}
             with open('model_config.json','w') as f:
-                json.dump(model_config,f,indent=4)
+                json.dump(model_config,f,indent=4,ensure_ascii=False)
                     
             
         if model_config["target_col"] in columns:
@@ -269,9 +301,11 @@ def build_model(st,**state):
             
             with open('model_config.json','w') as f:
                 json.dump(model_config,f,indent=4,ensure_ascii=False)
+            with open(filename[0:-4]+model_name+'model_config.json','w') as f:
+                json.dump(model_config,f,indent=4,ensure_ascii=False)
                 st.success("保存成功")
             
-    if choose=='step2,训练模型':
+    if choose==1:
         
         filename=get_current_file_name(ifprint=False)                 
         dataframe,filename=data_process_cache(filename) 
@@ -352,7 +386,7 @@ def build_model(st,**state):
                 st.write('r2: ',round(r2,4),'rmse: ',round(rmse,4),'mae: ',round(mae,4))                                      
             # st.write(final_model_info)
             with open('final_model_info.json','w') as f:
-                json.dump(final_model_info,f)           
+                json.dump(final_model_info,f,ensure_ascii=False)           
             st.success('模型已经创建')
           
         elif start_train and target_col is not None and task == '分类':  
@@ -398,7 +432,6 @@ def build_model(st,**state):
         elif start_train and target_col is not None and task == '时间序列回归':
             from functions import create_traindata_with_ypre,create_diff_fea
             
-            # target_name_list=[target_col+'ypre'+str(i) for i in range(pre_shift+1)]
             
             shift_dataframe,target_name_list=create_traindata_with_ypre(filter_dataframe,
                                                          pre_n_minutes=pre_shift,
@@ -410,10 +443,7 @@ def build_model(st,**state):
                                                     diff_periods=10,
                                                     use_past_fea=0)
             model="lightgbm"    
-            # st.table(shift_dataframe_withfea.head(5))
             st.success('模型训练开始......') 
-            # for target_name in target_name_list:
-            #     st.markdown(pd.concat([shift_dataframe_withfea.drop(target_name_list,axis=1),shift_dataframe_withfea[[target_name]]]).columns)
             final_model_info_dict={}
             for target_name in target_name_list:
                 st.caption(target_name)
@@ -478,7 +508,7 @@ def build_model(st,**state):
                 # st.write(final_model_info)
                 final_model_info_dict[target_name]=final_model_info
             with open('final_model_info.json','w') as f:
-                json.dump(final_model_info_dict,f,indent=4)           
+                json.dump(final_model_info_dict,f,indent=4,ensure_ascii=False)           
             st.success('模型已经创建')        
         
         
@@ -508,7 +538,7 @@ def build_model(st,**state):
             st.info('模型未保存')
         
                     
-    if choose=='step3,我的模型':
+    if choose==2:
         
         filename=get_current_file_name(ifprint=False) 
 
@@ -627,23 +657,66 @@ def build_model(st,**state):
                                                           model_id))
             
             if st.checkbox('模型评估'):
-                st.file_uploader('上传测试文件')
-                st.button('开始评估')
-                    
+                import plotly_express as px
+                datasource=st.file_uploader('上传测试文件')
+                modelname_list=os.listdir(model_path)
+                model_name_=st.selectbox("选择模型", modelname_list)
+                
+                if st.button('开始评估'):                
+                    pre_data_all,target_name_list,model_online,model_config,dataframe=\
+                    get_timeseries_predict(model_name_,
+                                           filename,
+                                           env_button,
+                                           model_store,
+                                           datasource,
+                                           pc_rg)
+                    dataframe.index=pd.to_datetime(dataframe.index)
+                    i=1
+                    for col in target_name_list:
+                        pre_data_all_col=pre_data_all[col].shift(i)
+                        pre_data_all_col.index=pd.to_datetime(pre_data_all_col.index)
+                        dataframe=dataframe.join(pre_data_all_col,how='right').dropna()
+                        # st.write(dataframe)
+                        i=i+1
+
+                        r2=r2_score(dataframe[col[0:-5]],dataframe[col]) 
+                        rmse=mean_squared_error(dataframe[col[0:-5]],dataframe[col],squared=False)
+                        mae=mean_absolute_error(dataframe[col[0:-5]],dataframe[col])        
+                        col1,col2=st.columns(2)
+                        with col1:
+                            st.caption('模型评价:')
+                        with col2:
+                            st.write('r2: ',round(r2,4),'rmse: ',round(rmse,4),'mae: ',round(mae,4)) 
+                                                                       
+                        
+                        fig = px.line(
+                          dataframe,
+                          x=dataframe.index, 
+                          y=[col[0:-5],col])
+                        fig.update_layout(width=800)
+                        st.write(fig) 
+                        
+                        # fig, ax = plt.subplots(figsize=(7,2), dpi=120)
+                        # sns.kdeplot(pre_data[target_col])
+                        # sns.kdeplot(pre_data['Label'])
+                        # ax.legend(['y_true','y_predict'])
+                        # # ax.title('kde')
+                        # st.pyplot(fig)     
+                            
+                            
+        
                         
 def create_app(st,**state):
     filename=get_current_file_name(ifprint=False) 
     
     choose = option_menu(None, ["预测看板","设备健康","异常判断"],
                          default_index=0,
-                         # icons=['list-task', 'list-task', "list-task"], 
+                          icons=['plus-lg', 'plus-lg', 'plus-lg'], 
                          menu_icon="cast",orientation="horizontal",styles=option_style)
     if choose=="预测看板": 
             app_name=st.text_input('1--,应用命名')
             with st.expander("应用说明"):  
                 app_desc=st.text_input('应用描述')
-            # with st.expander:
-            #     app_desc=st.text_input('option,应用说明')
            
             env_button='生产环境'
             model_path="./model_dir/operatorai-model-store/"+filename[0:-4]+'/'+env_button+'/'
@@ -653,32 +726,13 @@ def create_app(st,**state):
             else:
                 uploaded_model=None
                 st.info("生产环境中没有模型存在")
-                # model_info={}
-                # for modelx in modelname_list:
-                #     model_info[modelx]={}
-                #     model_info[modelx]['domain']='./'+filename[0:-4]+'/'+env_button+'/'+modelx
-                #     model_info[modelx]['model_ids']=model_
+
             app_purpose=st.selectbox('3--,应用目的',['拟合','时序预测'])
                
-            # uploaded_model=st.selectbox('2--,选择模型',model_info_dict.values())
+
             datasource=st.file_uploader('4--,连接实时数据')   
 
-            # if len(modelname_list)>0:
-                
-                
-            #     final_model=model_store.load('./'+filename[0:-4]+"/生产环境/"+model_name, 
-            #                                  model_id=final_model_info['model']['model_id'])
-                
-            #     model_ids=model_store.list_models(state["filename"][0:-4]+'生产环境')
-            #     model_info_dict={}
-            #     for model_id in model_ids:                
-            #         model_info=model_store.get_model_info(state["filename"][0:-4]+"生产环境",
-            #                                               model_id)
-            #         model_info_dict[model_id]=model_info['code']['created']+'-'+\
-            #                                     model_info['model']['model_type']['type']+'-'+\
-            #                                     state["filename"][0:-4]
-                
-            #     model_info_dict_inverse={v:k for k,v in model_info_dict.items()}            
+         
             
             if st.button('5--,创建'):
                 import pickle as pkl
@@ -710,44 +764,15 @@ def create_app(st,**state):
                             pkl.dump(appdict,f)
                         st.info(app_name+"应用已创建")
                     else:
-                        with open('model_info_生产环境'+uploaded_model+'.json','r') as f:
-                            model_idname_info=json.load(f)
-                            
-                        with open('model_config.json','r') as f:
-                            model_config=json.load(f)
-                        domain='./'+filename[0:-4]+'/'+env_button+'/'+uploaded_model
-                        # model_ids=model_store.list_models('./'+filename[0:-4]+'/'+env_button+'/'+uploaded_model)
-                        # st.write(model_ids)
-                        model_online={}
-                        for target_name, model_id in model_idname_info.items():
-                            model_online[target_name]=model_store.load(domain, 
-                                                          model_id=model_id)
-                        from functions import create_traindata_with_ypre,create_diff_fea
                         
-                        dataframe=pd.read_csv(datasource,index_col=0).fillna(0)
-                        shift_dataframe,target_name_list=create_traindata_with_ypre(dataframe,
-                                                                     pre_n_minutes=model_config["pre_shift"],
-                                                                     y_name=model_config["target_col"],
-                                                                     dropna=1)
+                        pre_data_all,target_name_list,model_online,model_config,dataframe=\
+                        get_timeseries_predict(uploaded_model,
+                                               filename,
+                                               env_button,
+                                               model_store,
+                                               datasource,
+                                               pc_rg)
 
-                        shift_dataframe_withfea=create_diff_fea(shift_dataframe,
-                                                                target_name_list,
-                                                                diff_periods=10,
-                                                                use_past_fea=0)
-                        
-                        
-                        pre_data_all={}
-                        for target_name in target_name_list:
-                        #     traindata=pd.concat([shift_dataframe_withfea.drop(target_name_list,axis=1),
-                        #                          shift_dataframe_withfea[[target_name]]],axis=1).astype('float').dropna()
-                                                                       
-                        
-                            pre_data=pd.DataFrame()
-                            pre_data=pc_rg.predict_model(model_online[target_name],data=shift_dataframe_withfea)[['Label']]
-                           
-                            pre_data.index=pd.to_datetime(pre_data.index)
-                            pre_data.columns=[target_name]                            
-                            pre_data_all[target_name]=pre_data.copy()
 
                         appdict={}
                         appdict['appname']=app_name
@@ -767,90 +792,11 @@ def create_app(st,**state):
                     st.warning('请上传文件')
                     
     if choose=="设备健康": 
-            app_name=st.text_input('1--,应用命名')
-            
-            model_ids=model_store.list_models(state["filename"][0:-4]+'生产环境')
-            model_info_dict={}
-            for model_id in model_ids:                
-                model_info=model_store.get_model_info(state["filename"][0:-4]+"生产环境",
-                                                      model_id)
-                model_info_dict[model_id]=model_info['code']['created']+'-'+\
-                                            model_info['model']['model_type']['type']+'-'+\
-                                            state["filename"][0:-4]
-            
-            model_info_dict_inverse={v:k for k,v in model_info_dict.items()}
-           
-            uploaded_model=st.selectbox('2--,选择模型',model_info_dict.values())
-            datasource=st.file_uploader('3--,连接实时数据')            
-              
-            
-            if st.button('4--,创建'):
-                import pickle as pkl
-                # st.write(app_name,uploaded_model,datasource)
-                if app_name !=None and uploaded_model != None and datasource != None:
-                    # model_online= pc_rg.load_model('./local_models/'+uploaded_model.name[0:-4])
-                  
-                    model_online=model_store.load(state["filename"][0:-4]+'生产环境', 
-                                                  model_id=model_info_dict_inverse[uploaded_model])
-                    dataframe=pd.read_csv(datasource,index_col=0).fillna(0)
-                    st.write(dataframe)
-                    st.write(model_online)
-                    # pre_data=pc_rg.predict_model(model_online,data=dataframe)
-                    # pre_data.index=pd.to_datetime(pre_data.index)
-                    # target_col='总降需量'
-                    # appdict={}
-                    # appdict['appname']=app_name
-                    # appdict['model_online']=model_online
-                    # appdict['dataframe']=dataframe
-                    # appdict['pre_data']=pre_data                    
-                    # appdict['target_col']=target_col  
-                    # with open('./appdict/预测看板/'+app_name,'wb') as f:
-                    #     pkl.dump(appdict,f)
+        st.write("to be done")
 
-                else:
-                    st.warning('请上传文件')
                     
     if choose=="异常判断": 
-            app_name=st.text_input('1--,应用命名')
-            
-            model_ids=model_store.list_models(state["filename"][0:-4]+'生产环境')
-            model_info_dict={}
-            for model_id in model_ids:                
-                model_info=model_store.get_model_info(state["filename"][0:-4]+"生产环境",
-                                                      model_id)
-                model_info_dict[model_id]=model_info['code']['created']+'-'+\
-                                            model_info['model']['model_type']['type']+'-'+\
-                                            state["filename"][0:-4]
-            
-            model_info_dict_inverse={v:k for k,v in model_info_dict.items()}
-           
-            uploaded_model=st.selectbox('2--,选择模型',model_info_dict.values())
-            datasource=st.file_uploader('3--,连接实时数据')            
-              
-            
-            if st.button('4--,创建'):
-                import pickle as pkl
-                # st.write(app_name,uploaded_model,datasource)
-                if app_name !=None and uploaded_model != None and datasource != None:
-                    # model_online= pc_rg.load_model('./local_models/'+uploaded_model.name[0:-4])
-                  
-                    model_online=model_store.load(state["filename"][0:-4]+'生产环境', 
-                                                  model_id=model_info_dict_inverse[uploaded_model])
-                    dataframe=pd.read_csv(datasource,index_col=0).fillna(0)  
-                    pre_data=pc_rg.predict_model(model_online,data=dataframe)
-                    pre_data.index=pd.to_datetime(pre_data.index)
-                    target_col='总降需量'
-                    appdict={}
-                    appdict['appname']=app_name
-                    appdict['model_online']=model_online
-                    appdict['dataframe']=dataframe
-                    appdict['pre_data']=pre_data                    
-                    appdict['target_col']=target_col  
-                    with open('./appdict/预测看板/'+app_name,'wb') as f:
-                        pkl.dump(appdict,f)
-
-                else:
-                    st.warning('请上传文件')                    
+        st.write("to be done")                   
                     
                     
                     
@@ -864,19 +810,12 @@ def demo_app(st,**state):
     with col1:
         appx=st.selectbox('选择应用',apps)
 
-    # appbutton={}
-    # with st.expander('删除应用'):
-    #     for appx in apps:            
-    #         appbutton[appx]=st.checkbox(appx)
-        # st.button('确认')
-    # st.markdown(apps)
-    # appbutton={}
 
-    # for app in apps:
-    #     if appbutton[buttons]:
     with open('./appdict/预测看板/'+appx,'rb') as f:
         appdict=pkl.load(f)
-
+        
+    with st.expander('应用说明'):   
+        st.markdown(appdict['app_desc'])
     page = option_menu(None,['实时预测','历史统计','明日预测','报警管理','模型管理'],
                           default_index=0,
                           icons=['diamond', 'diamond', "diamond", "diamond"], 
@@ -925,18 +864,14 @@ def demo_app(st,**state):
         pre_data_all=appdict['pre_data_all']                  
         target_col=appdict['target_col']  
         target_name_list=appdict['target_col_pre']  
-                                                   
-        col1,col2,col3,col4 =st.columns(4)
-
-            
-        # with col1:
-        #     page=st.selectbox('选择界面',['实时预测','历史统计','明日需量预测','报警管理'])                
         
-        col1,col2,col3,col4,col5,col6,col7,col8=st.columns(8)    
+                                                   
+        col1,col2,col3,col4 =st.columns(4)                              
+        col1,col2,col3,col4,col5,col6,col7=st.columns(7)    
         
         if page=="实时预测":
             with col1:
-                # demo_start=st.number_input('start_time',value=100)
+
                 demo_datestart=st.date_input('开始日期', 
                                              datetime.date(2021, 6, 6),
                                              min_value=datetime.date(2021, 6, 6),
@@ -967,7 +902,7 @@ def demo_app(st,**state):
         
         
         if page=='实时预测':
-            col1,col2,col3,col4,col5, col6, col7, col8 =st.columns(8)
+            col1,col2,col3,col4,col5, col6, col7 =st.columns(7)
             with col1:
                 st.metric("截止目前本月电费(万)",1720,delta=str(round(-80/1800*100,2))+'%',delta_color ="inverse")
             with col2:    
@@ -983,11 +918,11 @@ def demo_app(st,**state):
             # for target_name_pre in target_name_list:
             #     r2[target_name_pre]=r2_score(pre_data[target_name_pre],pre_data_all[target_name_pre])  
             columns=dataframe.columns
-            col1, col2, col3, col4,col5, col6, col7, col8 = st.columns(8)
+            col1, col2, col3, col4,col5, col6, col7 = st.columns(7)
             col_dict={}
             col_dict[1],col_dict[2],col_dict[3],col_dict[4],\
-            col_dict[5],col_dict[6],col_dict[7],col_dict[8]=\
-            col1, col2, col3, col4 ,col5, col6, col7, col8
+            col_dict[5],col_dict[6],col_dict[7]=\
+            col1, col2, col3, col4 ,col5, col6, col7
             
             for i in range(len(columns)):
                 with col_dict[i+1]:
@@ -1014,7 +949,7 @@ def demo_app(st,**state):
                                        index=oridata.append(predata[1:]).index).astype('float64')
 
             col1, col2 = st.columns([1,3])
-            col2.subheader(target_name[0:-5]+"预测看板MW")                          
+            col2.subheader(target_name[0:-5]+"预测看板（mW）")                          
             my_chart = st.line_chart(uplimit_frame)
             my_chart.add_rows(predata)
             my_chart.add_rows(oridata)
@@ -1141,7 +1076,6 @@ def demo_app(st,**state):
                 
             # plt.pie(freq, labels = freq.index, explode = (0.05, 0, 0), autopct = '%.1f%%', colors = colors, startangle = 90, counterclock = False)
 
-            # st.area_chart(dataframe[str(demo_days):str(demo_daye)].resample('1H').max())
                 
         elif page=='明日预测':
             
@@ -1151,17 +1085,21 @@ def demo_app(st,**state):
             pre24h.index=range(1,25)
   
             col1,col2=st.columns([2,5])
-            col2.write("明日0-24小时需量最大值预测")        
+            col2.write("明日0-24小时需量最大值预测")  
+
             st.area_chart(pre24h) 
             col1,col2=st.columns([4,6])
             col2.write("hour")
             
         elif page=='报警管理':
-            sel=st.selectbox('界面选择',['超限记录','报警记录','超限原因分析'],index=0)
+            sel=st.selectbox('界面选择',['超限记录','报警记录','超限原因分析','超限漏报记录'],index=0)
+            log = './报警日志/'+sel+'.log'
+            for line in open(log,"r",encoding='UTF-8'):           
+                st.markdown(line)
                                              
         elif page=='模型管理':
             col1,col2=st.columns([3,4])
-            col1.write('*当前模型:')
+            col1.write('*当前模型:')    
             col2.write("电力能耗预测")
             
             col3,col4=st.columns([3,4])            
@@ -1217,28 +1155,8 @@ if __name__ == '__main__':
     st.markdown('<p class="font3">霍尼韦尔企业智联 | 工厂能耗预测助手</p>', unsafe_allow_html=True)
 
     st.sidebar.image('./image/honeywell.png',width=150)
-    # st.sidebar.markdown('<p class="font1">霍尼韦尔企业智联</p>', unsafe_allow_html=True)
-    # st.sidebar.markdown('<p class="font2">Honeywell</p>', unsafe_allow_html=True)
-    # st.markdown("<h4>Honeywell | 工厂能耗预测助手</h4>", unsafe_allow_html=True)
-    # st.markdown("")  
-    # st.markdown("")
-    # st.set_page_config(page_title="HCE钢铁行业自动化建模平台", 
-    #                     page_icon="random" , 
-    #                     layout="wide",
-    #                     initial_sidebar_state="auto")
-    
-    # st.sidebar.text('--霍尼韦尔企业智联-工厂能耗预测助手--')
 
     with st.sidebar:    
-        # choose = option_menu("数据处理", ["数据处理","建立模型", "创建应用","应用列表","系统日志"],
-        #                       # icons=['house', 'file-slides','app-indicator'],                              
-        #                       menu_icon="list", default_index=0, 
-        #                       styles={ "container": {"padding": "5!important",
-        #                                             "background-color": "#fafafa"}, 
-        #                               "icon": {"color": "orange", "font-size": "25px"},
-        #                               "nav-link": {"font-size":                                                                                                    "16px", "text-align": "left", "margin":"0px", "--hover-color": "#eee"}, 
-        #                               "nav-link-selected": {"background-color": 
-        #                                                     "#0E1117"}})
         choose = option_menu("功能栏", ["数据处理","建立模型", "创建应用","应用列表","系统日志"],                             
                              icons=['cloud-upload-fill',
                                     'gear-fill',
@@ -1254,53 +1172,48 @@ if __name__ == '__main__':
                 """
     st.markdown(hide_streamlit_style, unsafe_allow_html=True) 
     
-   
+    names = ['李洋', '管理员', '霍尼韦尔']
+    usernames = ['liyang', 'admin', 'honeywell']
+    passwords = ['123456', '654321', '123456']   
+    hashed_passwords = stauth.Hasher(passwords).generate()   
+    authenticator = stauth.Authenticate(names, usernames, hashed_passwords,
+        'some_cookie_name', 'some_signature_key', cookie_expiry_days=30)
     
-    if choose =="数据处理":
-        data_process(st)
+    name, authentication_status, username = authenticator.login('Login', 'main')   
+    if authentication_status:
+        with st.container():
+            cols1,cols2 = st.columns([6,1])
+            with cols2:
+                cols2.caption('当前用户: *%s*' % (name))
+                authenticator.logout('Logout', 'main')
         
-    if choose =="建立模型":
-        build_model(st) 
+        if choose =="数据处理":
+            data_process(st)
+            
+        if choose =="建立模型":
+             
+            build_model(st) 
+            
+        if choose =="创建应用":
+            create_app(st)
+            
+        if choose =="应用列表":
+            demo_app(st)        
+            
+        if choose =="系统日志":
+            log_records(st)         
+      
+    
+        for i in range(20):
+            st.sidebar.write("")
+    
         
-    if choose =="创建应用":
-        create_app(st)
         
-    if choose =="应用列表":
-        demo_app(st)        
-        
-    if choose =="系统日志":
-        log_records(st)         
-       
-    # col1,col2= st.sidebar.columns([1,6])
-    # with col1:
-    for i in range(20):
-        st.sidebar.write("")
+        st.sidebar.image('./image/honeylogo.jpg',width=350,output_format ='JPEG')  
 
-    
-    
-    st.sidebar.image('./image/honeylogo.jpg',width=350,output_format ='JPEG')  
-    # with col2:
-    #     st.markdown("")
-    #     st.write('HONEYWELL')
-    # st.sidebar.markdown('工业能耗预测助手 v1.00')
-        # st.caption('工业能耗预测助手')
-    # st.markdown("<footer>'tedt'</footer>" , unsafe_allow_html=True)   
-    # st.markdown("</p><p>Powered by: 编程的乐趣百家号</p></footer>", unsafe_allow_html=True)      
-  
-    # app = MultiPage()
-    # app.st = st
-    # app.navbar_name = "钢铁电力需量预测-建模平台"
-    # app.start_button = "Start App"
-    # app.navbar_style = "VerticalButton"
-    # app.hide_navigation = True
-    
-    # # app.hide_menu = True
-    # app.add_app("·  数据处理", data_process) 
-    # app.add_app("·  建立模型", build_model) 
-    # app.add_app("·  创建应用", create_app)
-    # app.add_app("·  应用列表", demo_app) 
-    # app.add_app("·  系统日志", log_records)        
-    # app.run()
-    
+    elif authentication_status == False:
+        st.error('Username/password is incorrect')
+    elif authentication_status == None:
+        st.warning('Please enter your username and password')
 
             

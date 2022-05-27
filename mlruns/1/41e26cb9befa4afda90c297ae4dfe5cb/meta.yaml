@@ -1,0 +1,15 @@
+artifact_uri: file:///E:/%E9%A1%B9%E7%9B%AE/%E8%83%BD%E8%80%97%E9%A2%84%E6%B5%8B%E5%8A%A9%E6%89%8B/streamlit_power_predict-master/mlruns/1/41e26cb9befa4afda90c297ae4dfe5cb/artifacts
+end_time: null
+entry_point_name: ''
+experiment_id: '1'
+lifecycle_stage: active
+name: ''
+run_id: 41e26cb9befa4afda90c297ae4dfe5cb
+run_uuid: 41e26cb9befa4afda90c297ae4dfe5cb
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1653552005111
+status: 1
+tags: []
+user_id: PC

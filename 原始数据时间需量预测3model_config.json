@@ -1,0 +1,6 @@
+{
+    "task": "时间序列回归",
+    "target_col": "总降需量",
+    "pre_shift": 3,
+    "model_name": "时间需量预测3"
+}
